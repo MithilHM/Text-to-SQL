@@ -1,0 +1,40 @@
+{
+  "run_name": "base",
+  "git_commit": "a29ce3b0e0513c5ea6cf30f793b11a3a59d2a682",
+  "timestamp": "2026-11-24T06:48:11.974100+00:00",
+  "model_path": "Qwen/Qwen2.5-Coder-1.5B-Instruct",
+  "adapter_path": null,
+  "config": {
+    "batch_size": 8,
+    "max_new_tokens": 256,
+    "mock": true,
+    "device": "cpu"
+  },
+  "metrics": {
+    "test_unseen": {
+      "count": 500,
+      "elapsed_seconds": 0.12,
+      "exact_match_ratio": 0.0,
+      "sql_validity_ratio": 0.0,
+      "mean_output_tokens": 10.0,
+      "error_distribution": {
+        "unknown_column_table": 500
+      }
+    },
+    "test_seen": {
+      "count": 200,
+      "elapsed_seconds": 0.05,
+      "exact_match_ratio": 0.0,
+      "sql_validity_ratio": 0.005,
+      "mean_output_tokens": 10.0,
+      "error_distribution": {
+        "unknown_column_table": 199,
+        "wrong_result": 1
+      }
+    },
+    "spider_dev": {
+      "status": "missing",
+      "note": "Spider dev dataset not found at data/spider/"
+    }
+  }
+}
