@@ -1,0 +1,17 @@
+# SQL-Forge v2 Requirements
+# Note: For Quadro GV100 (Volta sm_70), verify torch has sm_70 support: torch.cuda.get_arch_list()
+torch>=2.4.0
+transformers>=4.45.0
+peft>=0.12.0
+trl>=0.9.6
+datasets>=2.20.0
+accelerate>=0.34.0
+sqlglot>=25.0.0
+fastapi>=0.112.0
+uvicorn>=0.30.0
+httpx>=0.27.0
+pydantic>=2.8.0
+pyyaml>=6.0.2
+pandas>=2.2.0
+matplotlib>=3.9.0
+pytest>=8.0.0

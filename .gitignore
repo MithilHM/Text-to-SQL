@@ -1,0 +1,16 @@
+# Git ignore for SQL-Forge v2
+outputs/
+data/spider/
+data/processed/
+*.safetensors
+*.bin
+*.pt
+*.pth
+wandb/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.log
+.DS_Store
