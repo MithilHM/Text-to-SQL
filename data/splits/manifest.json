@@ -1,0 +1,15 @@
+{
+  "dataset": "b-mc2/sql-create-context",
+  "seed": 42,
+  "counts": {
+    "train": 8000,
+    "validation": 200,
+    "test_unseen": 500,
+    "test_seen": 200
+  },
+  "assertions": {
+    "train_val_schema_disjoint": true,
+    "train_test_unseen_schema_disjoint": true,
+    "test_seen_in_train_schemas": true
+  }
+}
