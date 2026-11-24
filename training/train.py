@@ -205,30 +205,47 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
     total_steps = dry_run_steps if dry_run_steps > 0 else None
     epochs = 1 if dry_run_steps == 0 else 1
 
-    training_args = SFTConfig(
-        output_dir=t_cfg["output_dir"],
-        max_seq_length=cfg["data"]["max_seq_length"],
-        dataset_text_field=None,
-        packing=False,
-        num_train_epochs=epochs,
-        max_steps=total_steps if total_steps else -1,
-        per_device_train_batch_size=t_cfg["per_device_train_batch_size"],
-        gradient_accumulation_steps=t_cfg["gradient_accumulation_steps"],
-        learning_rate=float(t_cfg["learning_rate"]),
-        optim=t_cfg["optim"],
-        lr_scheduler_type=t_cfg["lr_scheduler_type"],
-        warmup_ratio=t_cfg["warmup_ratio"],
-        max_grad_norm=t_cfg["max_grad_norm"],
-        fp16=t_cfg["fp16"] and (device == "cuda"),
-        bf16=False,
-        logging_steps=t_cfg["logging_steps"] if not dry_run_steps else 1,
-        save_steps=t_cfg["save_steps"] if not dry_run_steps else 9999,
-        save_total_limit=t_cfg["save_total_limit"],
-        evaluation_strategy="steps" if not dry_run_steps else "no",
-        eval_steps=100 if not dry_run_steps else None,
-        seed=t_cfg["seed"],
-        report_to="none"
-    )
+    import inspect
+    sft_sig = inspect.signature(SFTConfig.__init__).parameters
+
+    sft_kwargs = {
+        "output_dir": t_cfg["output_dir"],
+        "num_train_epochs": epochs,
+        "max_steps": total_steps if total_steps else -1,
+        "per_device_train_batch_size": t_cfg["per_device_train_batch_size"],
+        "gradient_accumulation_steps": t_cfg["gradient_accumulation_steps"],
+        "learning_rate": float(t_cfg["learning_rate"]),
+        "optim": t_cfg["optim"],
+        "lr_scheduler_type": t_cfg["lr_scheduler_type"],
+        "warmup_ratio": t_cfg["warmup_ratio"],
+        "max_grad_norm": t_cfg["max_grad_norm"],
+        "fp16": t_cfg["fp16"] and (device == "cuda"),
+        "bf16": False,
+        "logging_steps": t_cfg["logging_steps"] if not dry_run_steps else 1,
+        "save_steps": t_cfg["save_steps"] if not dry_run_steps else 9999,
+        "save_total_limit": t_cfg["save_total_limit"],
+        "eval_steps": 100 if not dry_run_steps else None,
+        "seed": t_cfg["seed"],
+        "report_to": "none"
+    }
+
+    # Version-adaptive parameter mapping (TRL 0.x vs 1.x)
+    if "max_length" in sft_sig:
+        sft_kwargs["max_length"] = cfg["data"]["max_seq_length"]
+    elif "max_seq_length" in sft_sig:
+        sft_kwargs["max_seq_length"] = cfg["data"]["max_seq_length"]
+
+    if "eval_strategy" in sft_sig:
+        sft_kwargs["eval_strategy"] = "steps" if not dry_run_steps else "no"
+    elif "evaluation_strategy" in sft_sig:
+        sft_kwargs["evaluation_strategy"] = "steps" if not dry_run_steps else "no"
+
+    if "dataset_text_field" in sft_sig:
+        sft_kwargs["dataset_text_field"] = None
+    if "packing" in sft_sig:
+        sft_kwargs["packing"] = False
+
+    training_args = SFTConfig(**sft_kwargs)
 
     log_file = Path(t_cfg["output_dir"]) / "train_logs.jsonl"
     metrics_cb = MetricsTrackingCallback(log_file)
