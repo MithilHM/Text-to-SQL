@@ -241,7 +241,7 @@ def train(
         "optim": t_cfg["optim"],
         "lr_scheduler_type": t_cfg["lr_scheduler_type"],
         "max_grad_norm": t_cfg["max_grad_norm"],
-        "fp16": t_cfg["fp16"] and (device == "cuda"),
+        "fp16": (t_cfg["fp16"] and (device == "cuda") and (not qlora)),
         "bf16": False,
         "logging_steps": t_cfg["logging_steps"] if not dry_run_steps else 1,
         "save_steps": t_cfg["save_steps"] if not dry_run_steps else 9999,
