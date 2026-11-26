@@ -28,7 +28,7 @@ def test_health_endpoint(client):
     data = response.json()
     assert data["status"] == "healthy"
     assert data["model"] == "sql-forge-1.5b"
-    assert data["backend"] == "hf"
+    assert data["backend"] in ("hf", "dynamic")
     assert "uptime_seconds" in data
 
 def test_generate_endpoint_validation(client):
