@@ -168,6 +168,7 @@ def train(
     attn_impl = cfg["model"]["attn_implementation"]
 
     load_kwargs = {
+        "torch_dtype": torch_dtype,
         "attn_implementation": attn_impl,
         "device_map": "auto" if device == "cuda" else None,
         "trust_remote_code": True,
@@ -181,12 +182,14 @@ def train(
             bnb_4bit_compute_dtype=torch.float16,
             bnb_4bit_use_double_quant=True,
         )
-    else:
-        load_kwargs["torch_dtype"] = torch_dtype
 
     model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
     if qlora:
         model = prepare_model_for_kbit_training(model)
+        # Ensure no bfloat16 tensors remain on Volta sm_70
+        for name, param in model.named_parameters():
+            if param.dtype == torch.bfloat16:
+                param.data = param.data.to(torch.float16)
     model.config.use_cache = False
 
     # 3. LoRA Configuration
