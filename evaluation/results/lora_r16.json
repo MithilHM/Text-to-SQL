@@ -1,0 +1,40 @@
+{
+  "run_name": "lora_r16",
+  "git_commit": "cadf533a",
+  "timestamp": "2026-11-24T06:50:00+00:00",
+  "model_path": "outputs/merged",
+  "config": {
+    "lora_rank": 16,
+    "batch_size": 8
+  },
+  "metrics": {
+    "test_unseen": {
+      "count": 500,
+      "exact_match_ratio": 0.624,
+      "sql_validity_ratio": 0.942,
+      "mean_output_tokens": 14.8,
+      "error_distribution": {
+        "correct": 312,
+        "syntax_error": 12,
+        "unknown_column_table": 17,
+        "wrong_result": 159
+      }
+    },
+    "test_seen": {
+      "count": 200,
+      "exact_match_ratio": 0.745,
+      "sql_validity_ratio": 0.985,
+      "mean_output_tokens": 13.9,
+      "error_distribution": {
+        "correct": 149,
+        "syntax_error": 2,
+        "unknown_column_table": 1,
+        "wrong_result": 48
+      }
+    },
+    "spider_dev": {
+      "status": "missing",
+      "note": "Awaiting download"
+    }
+  }
+}
