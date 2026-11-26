@@ -46,7 +46,7 @@ class DynamicBatchingEngine:
 
         self.model_path = os.getenv("MODEL_PATH", "outputs/merged")
         self.mock = os.getenv("MOCK_MODEL", "0").lower() in ("1", "true", "yes")
-        self.model_name = "sql-forge-1.5b-dynamic"
+        self.model_name = "sql-forge-1.5b"
         self.device = "cpu"
 
         self.queue: asyncio.Queue = asyncio.Queue()
