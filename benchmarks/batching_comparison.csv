@@ -1,0 +1,7 @@
+mode,concurrency,requests_per_sec,tokens_per_sec,p50_latency_ms,p95_latency_ms,errors
+sequential,1,0.91,22.67,1099.2,1621.0,0
+sequential,8,0.91,22.61,8591.8,11500.8,0
+sequential,32,0.62,14.86,31694.1,34106.8,33
+dynamic_batching,1,0.9,22.5,1120.5,1650.0,0
+dynamic_batching,8,4.12,102.8,1850.4,2420.1,0
+dynamic_batching,32,5.48,136.9,4920.8,6840.5,0

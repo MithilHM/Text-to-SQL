@@ -1,0 +1,37 @@
+{
+  "total_failures_analyzed": 123,
+  "taxonomy_breakdown": {
+    "1. Boundary / Operator Mismatch": 62,
+    "2. Nested Aggregation / Group-By Inversion": 31,
+    "3. Cross-Table Attribute Ambiguity": 15,
+    "4. SQLite Dialect Syntax Discrepancy": 11,
+    "5. Schema Attribute Hallucination": 4
+  },
+  "cross_tabulation_by_schema_size": {
+    "1. Boundary / Operator Mismatch": {
+      "Small": 38,
+      "Medium": 18,
+      "Large": 6
+    },
+    "2. Nested Aggregation / Group-By Inversion": {
+      "Small": 8,
+      "Medium": 14,
+      "Large": 9
+    },
+    "3. Cross-Table Attribute Ambiguity": {
+      "Small": 1,
+      "Medium": 6,
+      "Large": 8
+    },
+    "4. SQLite Dialect Syntax Discrepancy": {
+      "Small": 5,
+      "Medium": 4,
+      "Large": 2
+    },
+    "5. Schema Attribute Hallucination": {
+      "Small": 1,
+      "Medium": 1,
+      "Large": 2
+    }
+  }
+}

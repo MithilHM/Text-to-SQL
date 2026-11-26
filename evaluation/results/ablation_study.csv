@@ -1,0 +1,5 @@
+config,params_m,trainable_pct,peak_vram_gb,sec_per_step,training_time_min,test_unseen_em,test_unseen_validity,test_seen_em
+LoRA r=8 (fp16),9.23,0.59,3.12,3.42,28.5,72.8,97.4,75.0
+LoRA r=16 (fp16),18.46,1.18,3.41,3.59,29.9,75.4,98.2,77.5
+LoRA r=32 (fp16),36.93,2.36,4.08,3.91,32.6,76.2,98.4,78.5
+QLoRA r=16 (4-bit),18.46,1.18,1.84,5.12,42.7,74.2,97.8,76.0

@@ -21,6 +21,11 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 
 from serving.model_loader import engine
+from serving.dynamic_batcher import dynamic_engine
+
+# Select serving engine mode: "sequential" vs "dynamic"
+ENGINE_MODE = os.getenv("ENGINE_MODE", "dynamic").lower()
+active_engine = dynamic_engine if ENGINE_MODE == "dynamic" else engine
 
 # Server state metrics
 START_TIME = time.time()
@@ -34,10 +39,14 @@ LATENCY_HISTORY_MS: List[float] = []
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
-    print("Initializing SQL-Forge inference engine on startup...", flush=True)
-    engine.load()
+    print(f"Initializing SQL-Forge inference engine on startup (mode={ENGINE_MODE})...", flush=True)
+    active_engine.load()
+    if hasattr(active_engine, "start_worker"):
+        active_engine.start_worker()
     yield
     print("Shutting down SQL-Forge serving engine...", flush=True)
+    if hasattr(active_engine, "stop_worker"):
+        await active_engine.stop_worker()
 
 
 app = FastAPI(
@@ -97,7 +106,7 @@ async def generate_sql(request: GenerateRequest):
     try:
         # Enforce 30s hard request timeout
         sql, latency_ms, tok_count = await asyncio.wait_for(
-            engine.generate(schema=request.schema_text, question=request.question),
+            active_engine.generate(schema=request.schema_text, question=request.question),
             timeout=30.0
         )
 
@@ -110,7 +119,7 @@ async def generate_sql(request: GenerateRequest):
 
         return GenerateResponse(
             sql=sql,
-            model=engine.model_name,
+            model=active_engine.model_name,
             latency_ms=round(latency_ms, 2),
             output_tokens=tok_count
         )
@@ -134,10 +143,10 @@ async def health_check():
     """Service health and backend details."""
     uptime = time.time() - START_TIME
     return HealthResponse(
-        status="healthy" if engine.initialized else "initializing",
-        model=engine.model_name,
-        backend=engine.backend,
-        device=engine.device,
+        status="healthy" if active_engine.initialized else "initializing",
+        model=active_engine.model_name,
+        backend=getattr(active_engine, "backend", ENGINE_MODE),
+        device=active_engine.device,
         uptime_seconds=round(uptime, 2)
     )
 
