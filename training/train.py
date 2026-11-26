@@ -63,7 +63,14 @@ def plot_loss_curve(log_entries: list, output_path: Path):
     print(f"Loss curve saved -> {output_path}")
 
 
-def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bool = False):
+def train(
+    cfg: dict,
+    dry_run_steps: int = 0,
+    rank_override: int = None,
+    qlora: bool = False,
+    adapter_dir_override: str = None,
+    mock: bool = False
+):
     if mock:
         print("\n--- MOCK TRAINING MODE (Offline verification) ---")
         summary = {
@@ -155,18 +162,31 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # 2. Load Base Model in fp16
-    print(f"Loading base model in fp16 with sdpa attention: {model_name}...")
+    # 2. Load Base Model in fp16 (or 4-bit QLoRA)
+    print(f"Loading base model ({'4-bit QLoRA' if qlora else 'fp16'}) with sdpa attention: {model_name}...")
     torch_dtype = torch.float16 if cfg["model"]["torch_dtype"] == "float16" else torch.float32
     attn_impl = cfg["model"]["attn_implementation"]
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        torch_dtype=torch_dtype,
-        attn_implementation=attn_impl,
-        device_map="auto" if device == "cuda" else None,
-        trust_remote_code=True
-    )
+    load_kwargs = {
+        "attn_implementation": attn_impl,
+        "device_map": "auto" if device == "cuda" else None,
+        "trust_remote_code": True,
+    }
+    if qlora:
+        from peft import prepare_model_for_kbit_training
+        from transformers import BitsAndBytesConfig
+        load_kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        )
+    else:
+        load_kwargs["torch_dtype"] = torch_dtype
+
+    model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+    if qlora:
+        model = prepare_model_for_kbit_training(model)
     model.config.use_cache = False
 
     # 3. LoRA Configuration
@@ -217,7 +237,6 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
         "learning_rate": float(t_cfg["learning_rate"]),
         "optim": t_cfg["optim"],
         "lr_scheduler_type": t_cfg["lr_scheduler_type"],
-        "warmup_ratio": t_cfg["warmup_ratio"],
         "max_grad_norm": t_cfg["max_grad_norm"],
         "fp16": t_cfg["fp16"] and (device == "cuda"),
         "bf16": False,
@@ -228,6 +247,9 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
         "seed": t_cfg["seed"],
         "report_to": "none"
     }
+
+    if "warmup_ratio" in sft_sig:
+        sft_kwargs["warmup_ratio"] = t_cfg["warmup_ratio"]
 
     # Version-adaptive parameter mapping (TRL 0.x vs 1.x)
     if "max_length" in sft_sig:
@@ -297,7 +319,7 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
     peak_mem = torch.cuda.max_memory_allocated() / (1024**3) if torch.cuda.is_available() else 0.0
 
     # Save adapter
-    adapter_dir = Path(t_cfg["adapter_dir"])
+    adapter_dir = Path(adapter_dir_override or t_cfg["adapter_dir"])
     adapter_dir.mkdir(parents=True, exist_ok=True)
     print(f"Saving final LoRA adapter to {adapter_dir}...")
     model.save_pretrained(adapter_dir)
@@ -316,6 +338,7 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
         "model": cfg["model"]["model_name_or_path"],
         "lora_rank": lora_cfg_dict["r"],
         "lora_alpha": lora_cfg_dict["lora_alpha"],
+        "qlora_4bit": qlora,
         "total_steps": trainer.state.global_step,
         "total_time_seconds": round(t_elapsed, 2),
         "peak_gpu_memory_gb": round(peak_mem, 2),
@@ -323,7 +346,7 @@ def train(cfg: dict, dry_run_steps: int = 0, rank_override: int = None, mock: bo
         "history": metrics_cb.step_history
     }
 
-    summary_path = Path(t_cfg["summary_file"])
+    summary_path = adapter_dir / "training_summary.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
@@ -337,6 +360,8 @@ def main():
     parser.add_argument("--config", type=str, default="configs/train.yaml", help="Path to YAML training config")
     parser.add_argument("--dry-run-steps", type=int, default=0, help="Run N steps benchmark before full training")
     parser.add_argument("--rank", type=int, default=None, help="Override LoRA rank (alpha set to 2*rank)")
+    parser.add_argument("--qlora", action="store_true", help="Use 4-bit NF4 QLoRA quantization")
+    parser.add_argument("--adapter-dir", type=str, default=None, help="Override output adapter directory")
     parser.add_argument("--mock", action="store_true", help="Run mock training offline to test pipeline")
     args = parser.parse_args()
 
@@ -347,6 +372,8 @@ def main():
         cfg=cfg,
         dry_run_steps=args.dry_run_steps,
         rank_override=args.rank,
+        qlora=args.qlora,
+        adapter_dir_override=args.adapter_dir,
         mock=args.mock
     )
 
